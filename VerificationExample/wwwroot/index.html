@@ -1,0 +1,63 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NKCSS.Antelope.Verify Verification Example</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poetsen+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/site.css" asp-append-version="true" />
+    <!--<link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/VerificationExample.styles.css" asp-append-version="true" />-->
+</head>
+<body>
+    <div>
+        <h1>Basic Example</h1>
+        <p>
+            Here we can show a basic verification example for both <a href="https://mycloudwallet.com" target="_blank">MyCloudWallet</a> 
+            and <a href="https://github.com/greymass/anchor" target="_blank">Anchor</a>.
+        </p>
+        <p>
+            Note: server-side we added a 1s delay to make sure you can see it actually happen here 😅 so, good news: it's VERY fast.
+        </p>
+        <h2>MyCloudWallet</h2>
+        <p>Click the button below to do a standard identity-request with MyCloudWallet</p>
+        <div>
+            <button id="wcw-login-button">
+                <img src="data:image/png;base64,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"
+                     alt="WAX">
+            </button>
+            <div>Client<span>?</span></div>
+            <div>Server<span>?</span></div>
+        </div>
+        <h2>Anchor</h2>
+        <p>Click the button below to do a standard identity-request with Anchor</p>
+        <div>
+            <button id="anchor-login-button">
+                <div class="anchor-logo"></div>
+            </button>
+            <div>Client<span>?</span></div>
+            <div>Server<span>?</span></div>
+        </div>
+        <h2>Emoji Chat</h2>
+        <p>After logging in, press some of these buttons below. Maybe open up a 2nd browser window 😊</p>
+        <div id="emoji-chat">
+            <div></div>
+            <div></div>
+        </div>
+
+        <footer class="border-top footer text-muted">
+            <div class="container">
+                &copy; 2024 - Nick Kusters | <span id="connection-count">0</span>😎
+            </div>
+        </footer>
+    </div>
+    <script src="/server-vars.js"></script>
+    <script src="/lib/signalr/dist/browser/signalr.js"></script>
+    <script src="/lib/waxjs/waxjs.js"></script>
+    <script src="/lib/anchor-link/anchor-link.bundle.js"></script>
+    <script src="/lib/anchor-link-browser/anchor-link-browser-transport.bundle.js"></script>
+    <script src="/js/site.js" asp-append-version="true"></script>
+</body>
+</html>

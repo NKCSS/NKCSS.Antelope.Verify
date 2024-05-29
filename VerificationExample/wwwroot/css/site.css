@@ -1,0 +1,81 @@
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    position: relative;
+    min-height: 100%;
+    font-size: 1em;
+}
+
+body {
+    margin-bottom: 60px;
+    background-color: #2392ff;
+}
+h1, h2, h3, h4, h5 {
+    font-family: "Poetsen One", sans-serif;
+    font-weight: 400;
+    font-style: normal;
+}
+body > div {
+    max-width: 800px;
+    width: 90vw;
+    margin: 0 auto;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 20px 5px;
+    background-color: #fff;
+    padding: 0 1rem 0 1rem;
+}
+body > div > div {
+    display: flex;
+    grid-gap: 1em;
+}
+body > div > div > div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-weight: bold;
+}
+body > div > div > div > span{
+    font-weight: normal;
+}
+
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+.anchor-logo {
+    width: 70px;
+    height: 70px;
+    margin: 0 auto;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23fff' d='M18.81 9.19h33.25V59.5H18.81z'/%3E%3Cpath d='M38.45 28.88h-6.9L35 21.77l3.45 7.1z' fill='%233650A2'/%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M35 70a35 35 0 100-70 35 35 0 000 70zm2.36-55.4a2.62 2.62 0 00-4.72 0L21.9 36.75h5.84l1.7-3.5h11.13l1.7 3.5h5.83L37.36 14.6zM48.13 44.2h-5.26a7.76 7.76 0 01-5.24 7v-10.5a2.62 2.62 0 10-5.25 0v10.5a7.76 7.76 0 01-5.25-7h-5.25c.16 7.06 6 12.69 13.12 12.69 7.12 0 12.97-5.63 13.13-12.7z' fill='%233650A2'/%3E%3C/svg%3E");
+}
+#emoji-chat {
+    flex-direction: column;
+    margin-top: 1em;
+}
+
+#emoji-chat > div:nth-of-type(1) {
+    font-size: 4em;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+#emoji-chat > div:nth-of-type(1) > button {
+    font-size: 1em;
+    max-width: 1.5em;
+    max-height: 1.38em;
+    overflow: hidden;
+}
+#emoji-chat > div:nth-of-type(2) {
+    overflow: auto;
+    height: 50vh;
+    align-items: start;
+}
+
+@media (min-width: 768px) {
+    html {
+        font-size: 2em;
+    }
+}
