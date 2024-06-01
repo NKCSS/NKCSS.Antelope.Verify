@@ -68,7 +68,14 @@ The settings you should change lives in `./Hubs/WaxHub.cs` at the top, you'll fi
 
 ### Replay Attack
 
-Technically, an evil dApp could capture your Anchor login proof and submit it to this verification service inside the 60-second window. To overcome this, you could demand a second on-demand login proof, which would negate that, as long as you have not done a client identity proof in the last 60 seconds before it.
+Technically, an evil dApp could capture your Anchor login proof and submit it to this verification service inside the 60-second window. 
+To overcome this, you could demand a second on-demand login proof, which would negate that, as long as you have not done a client identity proof in the last 60 seconds before it.
+
+I've added a proof of concept to solve this possible attack vector by requiring a 2nd verification that is triggered from the server-side, taking away initiative from the possible attackers.
+
+While an attacker could still forward this request, when it comes out of the blue for a user, this should raise a red flag where the user would not go through with it.
+
+This is all very theoretical though. The prerequisites for such an attack are so big and the possible upside so small, that it's not a practical thing to be worried about.
 
 ### Delay
 
