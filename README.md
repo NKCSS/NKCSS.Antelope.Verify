@@ -52,7 +52,23 @@ We also prepare the `proof` object like this, to not have to call `.toString()` 
 var proof = JSON.parse(JSON.stringify(identity.proof));
 ```
 
+### Extra layer for MyCloudWallet
+
+You should configure the expected dApp url that you host your verification layer on to make sure a reply attack cannot be used with the MyCloudWallet verification.
+
+For the local test, you can find the value you should put in this file `./Properties/launchSettings.json` under this path: `profiles.http.applicationUrl` or you can just set it to any string, and catch the error in the console to know what it expects.
+
+If you deploy this somewhere, make sure to put in the expected dApp url, especially when using something like NGINX, you'll need to manually specify this as you won't be able to infer it directly.
+
+To disable this check (not recommended), you can set it to an empty string or `null`.
+
+The settings you should change lives in `./Hubs/WaxHub.cs` at the top, you'll find property `ExpectedReferer`.
+
 ## Notes
+
+### Replay Attack
+
+Technically, an evil dApp could capture your Anchor login proof and submit it to this verification service inside the 60-second window. To overcome this, you could demand a second on-demand login proof, which would negate that, as long as you have not done a client identity proof in the last 60 seconds before it.
 
 ### Delay
 

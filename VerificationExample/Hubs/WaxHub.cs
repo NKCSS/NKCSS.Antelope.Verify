@@ -7,6 +7,14 @@ namespace VerificationExample.Hubs
     {
         #region Constants
         internal const bool UseTestNet = false;
+        /// <summary>
+        /// Can be found in ./Properties/launchSettings.json under profiles.http.applicationUrl. But, if you deploy this to a server, you might want to set this to the expected URL as there might be a reverse proxy like NGINX in between.
+        /// </summary>
+        /// <remarks>
+        /// If you don't want to do this check, set it to empty/null and it will be bypassed.
+        /// </remarks>
+        const string ExpectedReferer = "http://localhost:5260/";
+        static readonly bool CheckCWReferrer = !string.IsNullOrWhiteSpace(ExpectedReferer);
         // Some defaults for Wax; untested on other chains, but should be fine if you change the values below.
         const string WaxTestNetChainId = "f16b1833c747c43682f4386fca9cbb327929334a762755ebec17f6f23c9b8a12";
         const string WaxMainNetChainId = "1064487b3cd1a897ce03ae5b6a865651747e2e152090f99c1d19d44e01aea5a4";
@@ -118,11 +126,19 @@ const useTestNet = {WaxHub.UseTestNet.ToString().ToLowerInvariant()},
             Thread.Sleep(1000);
             bool isValid = NKCSS.Antelope.Verify.Verifier.Verify(msg, Context.ConnectionId);
             // Cloud Wallet is always 'active' permission
-            Console.WriteLine($"[CloudWallet] {msg.userAccount}@active: {isValid}");
+            Console.WriteLine($"[CloudWallet] {msg.userAccount}@active: {isValid}; msg: '{msg.ExpectedMessage}'");
             if (isValid && !msg.Altered)
             {
-                connectionIds[Context.ConnectionId] = msg.userAccount;
-                return true;
+                if (!CheckCWReferrer || msg.referrer == ExpectedReferer)
+                {
+                    connectionIds[Context.ConnectionId] = msg.userAccount;
+                    return true;
+                }
+                else
+                {
+                    Console.WriteLine($"Everything checks out, except the referer. We expected '{ExpectedReferer}'  but got '{msg.referrer}'. This might be a replay attack, or you forgot to set it correctly.");
+                    return false;
+                }
             }
             return false;
         }
