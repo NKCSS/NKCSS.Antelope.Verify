@@ -58,13 +58,13 @@ const useTestNet = {WaxHub.UseTestNet.ToString().ToLowerInvariant()},
         /// <remarks>
         /// Does not persist.
         /// </remarks>
-        static Dictionary<string, string> connectionIds { get; set; } = new();
+        static Dictionary<string, (string wallet, DateTime? firstAuth, DateTime? secondAuthRequested, DateTime? secondAuth)> connectionIds { get; set; } = new();
         public override async Task OnConnectedAsync()
         {
             int connectionCount;
             lock (ConnectionIdLock)
             {
-                connectionIds.Add(Context.ConnectionId, null);
+                connectionIds.Add(Context.ConnectionId, (null, null, null, null));
                 connectionCount = connectionIds.Count;
             }
             await base.OnConnectedAsync();
@@ -75,7 +75,7 @@ const useTestNet = {WaxHub.UseTestNet.ToString().ToLowerInvariant()},
             int connectionCount;
             lock (ConnectionIdLock)
             {
-                if (connectionIds.TryGetValue(Context.ConnectionId, out var wallet) && !string.IsNullOrWhiteSpace(wallet))
+                if (connectionIds.TryGetValue(Context.ConnectionId, out var wallet) && !string.IsNullOrWhiteSpace(wallet.wallet))
                     Console.WriteLine($"{wallet} disconnected...");
                 connectionIds.Remove(Context.ConnectionId);
                 connectionCount = connectionIds.Count;
@@ -89,11 +89,29 @@ const useTestNet = {WaxHub.UseTestNet.ToString().ToLowerInvariant()},
         }
         public async Task Emote(string emoji)
         {
-            string wallet = connectionIds.TryGetValue(Context.ConnectionId, out var w) ? w ?? "?" : "?";
+            string wallet = connectionIds.TryGetValue(Context.ConnectionId, out var w) && w.firstAuth.HasValue ? w.wallet ?? "?" : "?";
             if (allowedEmotes.Contains(emoji))
             {
                 // Make sure we only broadcast authenticated & validated client messages
-                if (wallet != "?") await Clients.All.SendAsync(ClientEvents.Emote, emoji, wallet);
+                if (wallet != "?")
+                {
+                    // Emoji's have length 2; we just want to make sure it's not the big string one, which would require a lvl 2 auth for demo purposes here...
+                    if (w.secondAuth.HasValue || emoji.Length <= 2)
+                    {
+                        await Clients.All.SendAsync(ClientEvents.Emote, emoji, wallet);
+                    }
+                    else if (DateTime.UtcNow.Subtract(w.firstAuth.Value).TotalSeconds > MinSecondsBetweenAuths)
+                    {
+                        w.secondAuthRequested = DateTime.UtcNow;
+                        connectionIds[Context.ConnectionId] = w;
+                        await Clients.Caller.SendAsync(ClientEvents.Emote, $"[only visible to you] This message requires a 2nd level of verification, please complete a secondary auth before you are able to do this.", wallet);                        
+                        await Clients.Caller.SendAsync(ClientEvents.ReAuth);
+                    }
+                    else
+                    {
+                        await Clients.Caller.SendAsync(ClientEvents.Emote, $"[only visible to you] This message requires a 2nd level of verification, but not enough time has passed since your last authentication. Please try again in about a minute or so.", wallet);
+                    }
+                }
             }
             else
             {
@@ -101,6 +119,7 @@ const useTestNet = {WaxHub.UseTestNet.ToString().ToLowerInvariant()},
                 await Clients.Caller.SendAsync(ClientEvents.BadBoy, "document.body.innerHTML = ''; document.body.style.backgroundImage = 'url(https://vote.naw.io/img/nggyu.gif)';");
             }
         }
+        const int MinSecondsBetweenAuths = 60;
         public async Task<bool> VerifyAnchor(NKCSS.Antelope.Verify.Anchor.VerifyMessage msg)
         {
             var exp = DateTime.UnixEpoch.AddSeconds(msg.expiration);
@@ -115,7 +134,48 @@ const useTestNet = {WaxHub.UseTestNet.ToString().ToLowerInvariant()},
             Console.WriteLine($"[Anchor] {msg.wallet}@{msg.permission}: {isValid}");
             if (isValid)
             {
-                connectionIds[Context.ConnectionId] = msg.wallet;
+                if(!connectionIds.TryGetValue(Context.ConnectionId, out var c))
+                {
+                    c = (msg.wallet, DateTime.UtcNow, null, null);
+                    connectionIds.Add(Context.ConnectionId, c);
+                }
+                else if(!c.firstAuth.HasValue)
+                {
+                    c.wallet = msg.wallet;
+                    c.firstAuth = DateTime.UtcNow;
+                    connectionIds[Context.ConnectionId] = c;
+                }
+                else if (!c.secondAuth.HasValue)
+                {
+                    if (!c.secondAuthRequested.HasValue)
+                    {
+                        Console.WriteLine($"{msg.wallet} sent in another autentication without us asking for it; this could be a replay attack (or they just triggered the login again on the site).");
+                        await Clients.Caller.SendAsync(ClientEvents.Emote, $"[only visible to you] You are already logged in, there is no need to login again.", msg.wallet);
+                        return false;
+                    }
+                    else if (DateTime.UtcNow.Subtract(c.secondAuthRequested.Value).TotalSeconds > MinSecondsBetweenAuths) {
+                        Console.WriteLine($"{msg.wallet}'s second-stage auth came in too long ({DateTime.UtcNow.Subtract(c.secondAuthRequested.Value)} passed since the request was made)");
+                        await Clients.Caller.SendAsync(ClientEvents.Emote, $"[only visible to you] You took too long to authenticate.", msg.wallet);
+                        return false;
+                    }
+                    else if (DateTime.UtcNow.Subtract(c.firstAuth.Value).TotalSeconds > MinSecondsBetweenAuths)
+                    {
+                        c.secondAuth = DateTime.UtcNow;
+                        connectionIds[Context.ConnectionId] = c;
+                        Console.WriteLine($"{msg.wallet} verified lvl 2");
+                        await Clients.Caller.SendAsync(ClientEvents.Emote, $"[only visible to you] thank you for completing stage-2 verification!", msg.wallet);
+                    }
+                    else
+                    {
+                        Console.WriteLine($"User tried to do a 2nd stage verification too early!");
+                        await Clients.Caller.SendAsync(ClientEvents.Emote, $"[only visible to you] You can't do a 2nd stage verification yet because not enough time has passed since your last authentication", msg.wallet);
+                        return false;
+                    }
+                }
+                else
+                {
+                    // Already authenticated, no action needed really, they just hit the button again.
+                }
                 return true;
             }
             return false;
@@ -131,7 +191,9 @@ const useTestNet = {WaxHub.UseTestNet.ToString().ToLowerInvariant()},
             {
                 if (!CheckCWReferrer || msg.referrer == ExpectedReferer)
                 {
-                    connectionIds[Context.ConnectionId] = msg.userAccount;
+                    // For cloud wallet, we only need 1 level of auth, but you could incorproate this system if you wanted to have additional security.
+                    var now = DateTime.UtcNow;
+                    connectionIds[Context.ConnectionId] = (msg.userAccount, now, now, now);
                     return true;
                 }
                 else
@@ -148,6 +210,7 @@ const useTestNet = {WaxHub.UseTestNet.ToString().ToLowerInvariant()},
             internal const string AllowedEmotes = nameof(AllowedEmotes);
             internal const string UpdateClientCount = nameof(UpdateClientCount);
             internal const string BadBoy = nameof(BadBoy);
+            internal const string ReAuth = nameof(ReAuth);
         }
     }
 }

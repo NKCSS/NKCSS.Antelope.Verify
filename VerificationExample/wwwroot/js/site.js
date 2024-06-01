@@ -44,6 +44,9 @@ ws.on('emote', function (emoji, wallet) {
     emojiChatHistory.appendChild(d);
     emojiChatHistory.scrollTop = emojiChatHistory.scrollHeight;
 });
+ws.on('ReAuth', async function () {    
+    await anchorLogin();
+});
 ws.on('AllowedEmotes', function (emojis) {
     window.allowedEmotes = emojis;
     emojiBox.innerHTML = `<button>${emojis.join('</button><button>')}</button>`;;
@@ -93,7 +96,11 @@ async function anchorLogin(afterLogin) {
     let lbls = anchorLoginButton.parentElement.querySelectorAll(':scope > div > span');
     window.anchorSession = session;
     lbls[0].textContent = window.wallet = session.auth.actor.toString();
-    lbls[1].textContent = 'checking...';
+    if (lbls[1].textContent === 'valid') {
+        lbls[2].textContent = 'checking...';
+    } else {
+        lbls[1].textContent = 'checking...';
+    }
     window.permission = session.auth.permission.toString()
     console.log(`Anchor Login ${session.auth}`);
     var proof = JSON.parse(JSON.stringify(identity.proof));
@@ -105,7 +112,11 @@ async function anchorLogin(afterLogin) {
         scope: proof.scope,
         signature: proof.signature
     }).then(function (success) {
-        lbls[1].textContent = success ? 'valid' : 'failed';
+        if (lbls[1].textContent === 'valid') {
+            lbls[2].textContent = success ? 'valid' : 'failed';
+        } else {
+            lbls[1].textContent = success ? 'valid' : 'failed';
+        }
     }).catch(function (err) {
         return console.error(err.toString());
     });
